@@ -16,7 +16,7 @@ const statusColor: Record<string, string> = {
 
 export default function RstTables() {
   const qc = useQueryClient();
-  const { setCartType, setCartTable } = useAppStore();
+  const store = useAppStore();
   const nav = useNavigate();
   const { data: tables = [] } = useQuery({ queryKey: ['rst-tables'], queryFn: rstAPI.getTables, refetchInterval: 15000 });
   const [editing, setEditing] = useState<any>(null);
@@ -48,7 +48,7 @@ export default function RstTables() {
           <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
             {(tables as any[]).filter(t => t.area === area).map(t => (
               <div key={t._id}
-                onClick={() => { if (t.status === 'free') { setCartType('dine-in'); setCartTable(t._id); nav('/rst/pos'); } else updateStatus.mutate({ id: t._id, status: 'free' }); }}
+                onClick={() => { if (t.status !== 'cleaning') { store.selectTable(t._id, t.name); nav('/rst/pos'); } }}
                 className={`relative aspect-square rounded-xl border-2 ${statusColor[t.status]} flex flex-col items-center justify-center cursor-pointer hover:scale-105 transition group`}>
                 <div className="font-bold">{t.name}</div>
                 <div className="text-[10px]">{t.seats}p</div>
