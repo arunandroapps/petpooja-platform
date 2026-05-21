@@ -9,11 +9,14 @@ const roleHome: Record<string, string> = {
   restaurant: '/rst',
 };
 
+// Demo credentials loaded from environment variables (not hardcoded in source)
+// Set VITE_DEMO_SA_PASS, VITE_DEMO_DIST_PASS, VITE_DEMO_OWNER_PASS, VITE_DEMO_RST_PASS in .env
+const env = (import.meta as any).env ?? {};
 const DEMO_CREDS = [
-  { role: 'Superadmin', email: 'admin@petpooja.com', password: 'admin123', color: 'bg-sa-600', desc: 'Full platform control' },
-  { role: 'Distributor', email: 'north@petpooja.com', password: 'dist123', color: 'bg-dist-600', desc: 'North India territory' },
-  { role: 'Owner', email: 'rajesh@spiceroute.com', password: 'owner123', color: 'bg-own-600', desc: 'Spice Route Hospitality (4 restaurants)' },
-  { role: 'Restaurant', email: 'manager@spiceroute.com', password: 'rest123', color: 'bg-brand-600', desc: 'Spice Route Bandra — POS & ops' },
+  { role: 'Superadmin', email: 'admin@petpooja.com', password: env.VITE_DEMO_SA_PASS ?? '', color: 'bg-sa-600', desc: 'Full platform control' },
+  { role: 'Distributor', email: 'north@petpooja.com', password: env.VITE_DEMO_DIST_PASS ?? '', color: 'bg-dist-600', desc: 'North India territory' },
+  { role: 'Owner', email: 'rajesh@spiceroute.com', password: env.VITE_DEMO_OWNER_PASS ?? '', color: 'bg-own-600', desc: 'Spice Route Hospitality (4 restaurants)' },
+  { role: 'Restaurant', email: 'manager@spiceroute.com', password: env.VITE_DEMO_RST_PASS ?? '', color: 'bg-brand-600', desc: 'Spice Route Bandra — POS & ops' },
 ];
 
 export default function Login() {

@@ -155,12 +155,15 @@ export const seedPlatformSettings: PlatformSettings = {
 };
 
 // ─── Auth Users ───────────────────────────────────────────────────────────────
+// NOTE: This frontend seed is for DEMO / localStorage mode only.
+// Production auth is handled by the backend API (petpooja-api).
+// Demo credentials are documented in README.md — do NOT store real credentials here.
 export const seedUsers: AuthUser[] = [
-  { id:'user-sa', email:'admin@petpooja.com', password:'admin123', role:'superadmin', entityId:'superadmin', name:'Super Admin' },
-  { id:'user-d1', email:'north@petpooja.com', password:'dist123', role:'distributor', entityId:'dist-1', name:'North India Partners' },
-  { id:'user-d2', email:'west@petpooja.com', password:'dist123', role:'distributor', entityId:'dist-2', name:'West Zone Foods' },
-  { id:'user-o1', email:'rajesh@spiceroute.com', password:'owner123', role:'owner', entityId:'own-1', name:'Rajesh Khanna' },
-  { id:'user-o2', email:'priya@delhibites.com', password:'owner123', role:'owner', entityId:'own-2', name:'Priya Sharma' },
-  { id:'user-r1', email:'manager@spiceroute.com', password:'rest123', role:'restaurant', entityId:'rst-1', name:'Vikram Joshi' },
-  { id:'user-r5', email:'manager@delhibites.com', password:'rest123', role:'restaurant', entityId:'rst-5', name:'Delhi Bites Manager' },
+  { id:'user-sa', email:'admin@petpooja.com', password:'demo_sa', role:'superadmin', entityId:'superadmin', name:'Super Admin' },
+  { id:'user-d1', email:'north@petpooja.com', password:'demo_dist', role:'distributor', entityId:'dist-1', name:'North India Partners' },
+  { id:'user-d2', email:'west@petpooja.com', password:'demo_dist', role:'distributor', entityId:'dist-2', name:'West Zone Foods' },
+  { id:'user-o1', email:'rajesh@spiceroute.com', password:'demo_owner', role:'owner', entityId:'own-1', name:'Rajesh Khanna' },
+  { id:'user-o2', email:'priya@delhibites.com', password:'demo_owner', role:'owner', entityId:'own-2', name:'Priya Sharma' },
+  { id:'user-r1', email:'manager@spiceroute.com', password:'demo_rst', role:'restaurant', entityId:'rst-1', name:'Vikram Joshi' },
+  { id:'user-r5', email:'manager@delhibites.com', password:'demo_rst', role:'restaurant', entityId:'rst-5', name:'Delhi Bites Manager' },
 ];
