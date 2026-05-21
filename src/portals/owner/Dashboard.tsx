@@ -1,86 +1,73 @@
-import { usePlatform } from '../../store/usePlatform';
+import { useQuery } from '@tanstack/react-query';
+import { ownerAPI } from '../../api/owner';
 import StatCard from '../../components/StatCard';
-import { Store, IndianRupee, ReceiptText, Users } from 'lucide-react';
-import { fmtMoney, fmtDate, startOfDay } from '../../utils/format';
+import { Store, IndianRupee, ReceiptText } from 'lucide-react';
+import { fmtMoney, fmtDate } from '../../utils/format';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
 export default function OwnDashboard() {
-  const { currentUser, owners, restaurants, orders, plans, customers } = usePlatform();
-  const owner = owners.find(o=>o.id===currentUser?.entityId);
-  if(!owner) return null;
-  const myRsts = restaurants.filter(r=>r.ownerId===owner.id);
-  const myRstIds = myRsts.map(r=>r.id);
-  const myOrders = orders.filter(o=>myRstIds.includes(o.restaurantId)&&o.status!=='cancelled');
-  const totalRevenue = myOrders.reduce((a,o)=>a+o.total,0);
-  const plan = plans.find(p=>p.id===owner.planId);
-  const daysLeft = Math.ceil((owner.subscriptionEnd-Date.now())/86400000);
+  const { data: owner } = useQuery({ queryKey: ['owner-me'], queryFn: ownerAPI.me });
+  const { data: restaurants = [] } = useQuery({ queryKey: ['owner-restaurants'], queryFn: ownerAPI.getRestaurants });
+  const { data: analytics } = useQuery({ queryKey: ['owner-analytics'], queryFn: () => ownerAPI.getAnalytics(7) });
 
-  const today = startOfDay(Date.now());
-  const todayOrders = myOrders.filter(o=>o.createdAt>=today);
-  const todayRevenue = todayOrders.reduce((a,o)=>a+o.total,0);
+  const plan = owner?.planId as any;
+  const daysLeft = owner ? Math.ceil((new Date(owner.subscriptionEnd).getTime() - Date.now()) / 86400000) : 0;
+  const byBranch = (analytics?.byBranch || []).map((b: any) => {
+    const rst = (restaurants as any[]).find(r => r._id === b._id?.toString() || r._id === b._id);
+    return { name: rst?.name?.split('—').pop()?.trim() || 'Branch', revenue: Math.round(b.revenue / 1000) };
+  });
 
-  const byBranch = myRsts.map(r=>({ name:r.name.split('—').pop()?.trim()||r.name, revenue:Math.round(r.totalRevenue/1000), orders:r.totalOrders }));
+  const totalRevenue = (analytics?.byBranch || []).reduce((a: number, b: any) => a + b.revenue, 0);
+  const totalOrders = (analytics?.byBranch || []).reduce((a: number, b: any) => a + b.orders, 0);
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{owner.businessName}</h1>
-          <p className="text-sm text-slate-500">{owner.city}, {owner.state} · {myRsts.length} branches</p>
+          <h1 className="text-2xl font-bold text-slate-900">{owner?.businessName}</h1>
+          <p className="text-sm text-slate-500">{owner?.city}, {owner?.state} · {(restaurants as any[]).length} branches</p>
         </div>
-        <div className="text-right">
-          <span className="badge" style={{background:plan?.color+'20',color:plan?.color}}>{plan?.name} Plan</span>
-          <div className={`text-xs mt-1 ${daysLeft<7?'text-red-500':daysLeft<30?'text-amber-500':'text-slate-500'}`}>Renews in {daysLeft} days ({fmtDate(owner.subscriptionEnd)})</div>
+        {plan && (
+          <div className="text-right">
+            <span className="badge" style={{ background: plan.color + '20', color: plan.color }}>{plan.name} Plan</span>
+            <div className={`text-xs mt-1 ${daysLeft < 7 ? 'text-red-500' : daysLeft < 30 ? 'text-amber-500' : 'text-slate-500'}`}>Renews in {daysLeft}d</div>
+          </div>
+        )}
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <StatCard label="Active Branches" value={(restaurants as any[]).filter((r: any) => r.status === 'active').length} sub={`${(restaurants as any[]).length} total`} Icon={Store} color="bg-brand-600" />
+        <StatCard label="7-day Revenue" value={fmtMoney(totalRevenue)} Icon={IndianRupee} color="bg-own-600" />
+        <StatCard label="7-day Orders" value={totalOrders} Icon={ReceiptText} color="bg-dist-600" />
+      </div>
+
+      {byBranch.length > 0 && (
+        <div className="card p-5">
+          <div className="text-sm font-semibold mb-4">Revenue by Branch (₹K)</div>
+          <div className="h-56">
+            <ResponsiveContainer>
+              <BarChart data={byBranch}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="name" fontSize={12} stroke="#94a3b8" />
+                <YAxis fontSize={12} stroke="#94a3b8" />
+                <Tooltip />
+                <Bar dataKey="revenue" fill="#10b981" name="Revenue (₹K)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-      </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Today's Revenue" value={fmtMoney(todayRevenue)} sub={`${todayOrders.length} orders today`} Icon={IndianRupee} color="bg-own-600"/>
-        <StatCard label="Active Branches" value={myRsts.filter(r=>r.status==='active').length} sub={`${myRsts.length} total`} Icon={Store} color="bg-brand-600"/>
-        <StatCard label="Total Orders" value={myOrders.length.toLocaleString()} Icon={ReceiptText} color="bg-dist-600"/>
-        <StatCard label="Total Revenue" value={fmtMoney(totalRevenue)} Icon={IndianRupee} color="bg-sa-600"/>
-      </div>
+      )}
 
       <div className="card p-5">
-        <div className="text-sm font-semibold mb-4">Revenue by Branch (₹K)</div>
-        <div className="h-64">
-          <ResponsiveContainer>
-            <BarChart data={byBranch}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0"/>
-              <XAxis dataKey="name" fontSize={12} stroke="#94a3b8"/>
-              <YAxis fontSize={12} stroke="#94a3b8"/>
-              <Tooltip/>
-              <Bar dataKey="revenue" fill="#10b981" name="Revenue (₹K)" radius={[4,4,0,0]}/>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="card p-5">
-          <div className="text-sm font-semibold mb-3">Branch Summary</div>
-          {myRsts.map(r=>(
-            <div key={r.id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
-              <div>
-                <div className="text-sm font-medium">{r.name}</div>
-                <div className="text-xs text-slate-500">{r.type} · {r.city}</div>
-              </div>
-              <div className="text-right">
-                <div className="text-sm font-semibold">{fmtMoney(r.totalRevenue)}</div>
-                <div className="text-xs text-slate-500">{r.totalOrders} orders</div>
-              </div>
-              <span className={`ml-3 badge ${r.status==='active'?'bg-emerald-100 text-emerald-700':r.status==='pending'?'bg-amber-100 text-amber-700':'bg-slate-100 text-slate-600'}`}>{r.status}</span>
+        <div className="text-sm font-semibold mb-3">Branch Summary</div>
+        {(restaurants as any[]).map((r: any) => (
+          <div key={r._id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+            <div>
+              <div className="text-sm font-medium">{r.name}</div>
+              <div className="text-xs text-slate-500">{r.type} · {r.city}</div>
             </div>
-          ))}
-        </div>
-        <div className="card p-5">
-          <div className="text-sm font-semibold mb-3">Recent Orders (All Branches)</div>
-          {myOrders.slice(0,8).map(o=>(
-            <div key={o.id} className="flex items-center justify-between py-1.5 text-sm border-b border-slate-100 last:border-0">
-              <div><span className="font-medium">#{o.number}</span> · <span className="text-slate-500 capitalize">{o.type}</span></div>
-              <span className="font-semibold">{fmtMoney(o.total)}</span>
-            </div>
-          ))}
-        </div>
+            <span className={`badge ${r.status === 'active' ? 'bg-emerald-100 text-emerald-700' : r.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>{r.status}</span>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -1,32 +1,31 @@
-import { usePlatform } from '../../store/usePlatform';
+import { useQuery } from '@tanstack/react-query';
+import { distAPI } from '../../api/distributor';
 import PageHeader from '../../components/PageHeader';
 import { fmtMoney } from '../../utils/format';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
 export default function DistReports() {
-  const { currentUser, distributors, owners, restaurants } = usePlatform();
-  const dist = distributors.find(d=>d.id===currentUser?.entityId);
-  const myOwners = owners.filter(o=>o.distributorId===dist?.id);
-  const myRstIds = restaurants.filter(r=>myOwners.some(o=>o.id===r.ownerId)).map(r=>r.id);
-  const byOwner = myOwners.map(o=>{
-    const rsts = restaurants.filter(r=>r.ownerId===o.id);
-    return { name:o.businessName.split(' ').slice(0,2).join(' '), revenue:rsts.reduce((a,r)=>a+r.totalRevenue,0), restaurants:rsts.length };
-  });
+  const { data: analytics } = useQuery({ queryKey: ['dist-analytics'], queryFn: distAPI.getAnalytics });
+  const { data: commission } = useQuery({ queryKey: ['dist-commission'], queryFn: distAPI.getCommission });
+
   return (
     <div className="p-6 space-y-6">
-      <PageHeader title="Territory Reports"/>
+      <PageHeader title="Territory Reports" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { l: 'Territory Revenue', v: fmtMoney(analytics?.revenue || 0) },
+          { l: 'Total Orders', v: analytics?.orders || 0 },
+          { l: 'Active Owners', v: analytics?.ownerCount || 0 },
+          { l: 'Active Restaurants', v: analytics?.restaurantCount || 0 },
+        ].map(x => (
+          <div key={x.l} className="card p-5"><div className="text-xs text-slate-500 uppercase">{x.l}</div><div className="text-2xl font-bold mt-1">{x.v}</div></div>
+        ))}
+      </div>
       <div className="card p-5">
-        <div className="text-sm font-semibold mb-4">Revenue by Owner</div>
-        <div className="h-72">
-          <ResponsiveContainer>
-            <BarChart data={byOwner}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0"/>
-              <XAxis dataKey="name" fontSize={12}/>
-              <YAxis fontSize={12}/>
-              <Tooltip formatter={(v:number)=>fmtMoney(v)}/>
-              <Bar dataKey="revenue" fill="#0ea5e9" radius={[4,4,0,0]} name="Revenue"/>
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="text-sm font-semibold mb-3">Commission Summary</div>
+        <div className="text-sm text-slate-600 space-y-2">
+          <div className="flex justify-between"><span>Subscription Revenue (Active Owners)</span><span className="font-semibold">{fmtMoney(commission?.subscriptionRevenue || 0)}</span></div>
+          <div className="flex justify-between"><span>Commission Rate</span><span className="font-semibold">{commission?.commissionPct}%</span></div>
+          <div className="flex justify-between text-emerald-600 font-bold border-t pt-2"><span>Total Commission Earned</span><span>{fmtMoney(commission?.commission || 0)}</span></div>
         </div>
       </div>
     </div>
