@@ -1,8 +1,9 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, ShoppingCart, Grid3X3, ChefHat, MonitorPlay, UtensilsCrossed, Package, Users, ReceiptText, BarChart3, UserCog, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Grid3X3, ChefHat, MonitorPlay, UtensilsCrossed, Package, Users, ReceiptText, BarChart3, UserCog, Settings, LogOut, ChevronDown } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { useQuery } from '@tanstack/react-query';
 import { ownerAPI } from '../api/owner';
+import { useState } from 'react';
 
 const nav = [
   { to: '/rst', label: 'Dashboard', Icon: LayoutDashboard, exact: true },
@@ -21,44 +22,83 @@ const nav = [
 
 export default function RestaurantLayout() {
   const { user, logout, activeRestaurantId } = useAppStore();
-  // Get restaurant info from owner's restaurant list (or a separate endpoint)
-  const { data: restaurants } = useQuery({ queryKey: ['owner-restaurants-for-layout'], queryFn: ownerAPI.getRestaurants, enabled: false });
-  const rst = restaurants?.find((r: any) => r._id === activeRestaurantId) || { name: 'Restaurant', type: 'Restaurant', city: '', address: '' };
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <aside className="w-60 shrink-0 bg-white border-r border-slate-200 flex flex-col">
-        <div className="px-5 py-5 border-b border-slate-200">
+      {/* Sidebar */}
+      <aside className="w-56 shrink-0 bg-white border-r border-slate-200 flex flex-col">
+        {/* Logo */}
+        <div className="px-4 py-4 border-b border-slate-200 shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white font-bold">P</div>
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white font-bold text-sm">P</div>
             <div>
-              <div className="font-bold text-slate-900 leading-tight text-sm">{user?.name?.split(' ')[0]}'s POS</div>
-              <div className="text-[10px] uppercase tracking-wider text-slate-500">Pet Pooja Restaurant</div>
+              <div className="font-bold text-slate-900 leading-tight text-sm">Pet Pooja</div>
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">Restaurant POS</div>
             </div>
           </div>
         </div>
-        <nav className="flex-1 overflow-y-auto py-3">
+
+        {/* Nav — scrollable if needed */}
+        <nav className="flex-1 overflow-y-auto py-2 min-h-0">
           {nav.map(({ to, label, Icon, exact }) => (
             <NavLink key={to} to={to} end={exact}
-              className={({ isActive }) => `flex items-center gap-3 px-5 py-2.5 text-sm font-medium transition border-l-2 ${isActive ? 'bg-brand-50 text-brand-700 border-brand-600' : 'text-slate-600 hover:bg-slate-50 border-transparent'}`}>
-              <Icon size={18} />{label}
+              className={({ isActive }) =>
+                `flex items-center gap-2.5 px-4 py-2 text-sm font-medium transition border-l-2
+                ${isActive ? 'bg-brand-50 text-brand-700 border-brand-600' : 'text-slate-600 hover:bg-slate-50 border-transparent'}`}>
+              <Icon size={16} />{label}
             </NavLink>
           ))}
         </nav>
-        <div className="p-4 border-t border-slate-200">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-7 h-7 rounded-full bg-brand-500 text-white flex items-center justify-center text-xs font-bold">{user?.name?.charAt(0)}</div>
-            <div className="text-sm font-medium truncate">{user?.name}</div>
-          </div>
-          <button onClick={logout} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700"><LogOut size={14} />Sign out</button>
+
+        {/* Logout — always pinned at bottom */}
+        <div className="shrink-0 p-3 border-t border-slate-200 bg-slate-50">
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition">
+            <LogOut size={15} />Sign Out
+          </button>
         </div>
       </aside>
+
+      {/* Main area */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-14 bg-white border-b border-slate-200 px-6 flex items-center justify-between">
-          <div className="text-sm text-slate-500">🍽️ Restaurant POS</div>
-          <div className="text-sm font-medium text-brand-700">Pet Pooja</div>
+        {/* Header with user info always visible */}
+        <header className="h-12 bg-white border-b border-slate-200 px-4 flex items-center justify-between shrink-0">
+          <div className="text-xs text-slate-400">🍽️ Restaurant POS</div>
+
+          {/* User dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowUserMenu(v => !v)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition text-sm">
+              <div className="w-6 h-6 rounded-full bg-brand-500 text-white flex items-center justify-center text-xs font-bold">
+                {user?.name?.charAt(0)}
+              </div>
+              <span className="font-medium text-slate-700 max-w-[120px] truncate">{user?.name}</span>
+              <ChevronDown size={14} className="text-slate-400" />
+            </button>
+            {showUserMenu && (
+              <div className="absolute right-0 top-full mt-1 w-44 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden">
+                <div className="px-4 py-3 border-b border-slate-100">
+                  <div className="text-xs font-semibold text-slate-800 truncate">{user?.name}</div>
+                  <div className="text-[11px] text-slate-500 truncate">{user?.email}</div>
+                </div>
+                <button
+                  onClick={() => { setShowUserMenu(false); logout(); }}
+                  className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition">
+                  <LogOut size={14} />Sign Out
+                </button>
+              </div>
+            )}
+            {/* Click outside to close */}
+            {showUserMenu && (
+              <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
+            )}
+          </div>
         </header>
-        <main className="flex-1 overflow-y-auto bg-slate-50"><Outlet /></main>
+
+        <main className="flex-1 overflow-y-auto bg-slate-50 min-h-0"><Outlet /></main>
       </div>
     </div>
   );
